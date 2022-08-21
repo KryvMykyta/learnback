@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { Telegraf } from "telegraf";
-const token = '5698955715:AAFOYZkROkkGGUrD5CeMxoXcBxfwOMhvTuI';
+const token = '';
 const bot = new Telegraf(token);
 
 const cmd = new Command();
