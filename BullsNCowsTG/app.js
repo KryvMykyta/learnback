@@ -1,5 +1,5 @@
 import { Telegraf } from "telegraf";
-import fs, { writeFile } from 'fs';
+import fs, { read, writeFile } from 'fs';
 
 const token = '';
 const bot = new Telegraf(token);
@@ -48,6 +48,7 @@ function generateMatch(id, enemy) {
         match["opponent"] = enemy;
         match["number"] = generateNumber();
         match["count"] = 0;
+        match["enemycount"] = 0;
         data[id] = match;
     }
     else {
@@ -73,12 +74,14 @@ function generateFight(id1, id2) {
     match1["opponent"] = id2;
     match1["number"] = generateNumber();
     match1["count"] = 0;
+    match1["enemycount"] = 0;
     data[id1] = match1;
 
     const match2 = {};
     match2["opponent"] = id1;
     match2["number"] = generateNumber();
     match2["count"] = 0;
+    match2["enemycount"] = 0;
     data[id2] = match2;
     bot.telegram.sendMessage(id1, "Your number was generated, start guessing");
     bot.telegram.sendMessage(id2, "Your number was generated, start guessing");
@@ -95,6 +98,37 @@ function isUniqueDigits(number) {
         }
     }
     return resultArr.length == subArr.length;
+}
+
+function checkRating(id) {
+    let rating = readData("ratings.json");
+    rating = JSON.parse(rating);
+
+    if(id in rating) {
+        if(rating[id] > 50) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function increaseRatingBy(winner,loser){
+    let rating = readData("ratings.json");
+    rating = JSON.parse(rating);
+
+    if (winner in rating) {
+        if(loser == "bot") {
+            rating[winner] += 20;
+        }
+        else {
+            rating[winner] += 50;
+            rating[loser] -= 50;
+        }
+    }
+    else {
+        rating[winner] = 20;
+    }
+    writeData(rating, "ratings.json");
 }
 
 function checkNumber(data, id, number) {
@@ -124,10 +158,33 @@ function checkNumber(data, id, number) {
     if (bulls == 4) {
         bot.telegram.sendMessage(id, "You guessed the number in " + data[id]["count"] + " attempts");
         if (data[id]["opponent"] != "bot") {
-            bot.telegram.sendMessage(data[id]["opponent"], "Your opponent " + id + " has ended game within " + data[id]["count"] + "attempts");
+            //bot.telegram.sendMessage(data[id]["opponent"], "Your opponent " + id + " has ended game within " + data[id]["count"] + "attempts");
+            if (data[id]["enemycount"] == 0) {
+                data[data[id]["opponent"]]["enemycount"] = data[id]["count"];
+            }
+            else {
+                if(data[id]["count"] > data[id]["enemycount"]) {
+                    bot.telegram.sendMessage(id,"You lost in the game against " + data[id]["opponent"] + ". You have guessed in " + data[id]["count"] 
+                    + " and your opponent in " + data[id]["enemycount"] + " attempts.");
+                    bot.telegram.sendMessage(data[id]["opponent"],"You won in the game against " + id + ". You have guessed in " + data[id]["enemycount"] 
+                    + " and your opponent in " + data[id]["count"] + " attempts.");
+                    increaseRatingBy(id,data[id]["opponent"]);
+                }
+                else if (data[id]["count"] < data[id]["enemycount"]){
+                    bot.telegram.sendMessage(id,"You won in the game against " + data[id]["opponent"] + ". You have guessed in " + data[id]["count"] 
+                    + " and your opponent in " + data[id]["enemycount"] + " attempts.");
+                    bot.telegram.sendMessage(data[id]["opponent"],"You lost in the game against " + id + ". You have guessed in " + data[id]["enemycount"] 
+                    + " and your opponent in " + data[id]["count"] + " attempts.");
+                    increaseRatingBy(data[id]["opponent"],id);
+                }
+                else {
+                    bot.telegram.sendMessage(id,"You have tie in the game against " + data[id]["opponent"]);
+                    bot.telegram.sendMessage(data[id]["opponent"],"You have tie in the game against " + id);
+                }
+            }
         }
         else {
-
+            increaseRatingBy(id,20);
         }
         data[id]["opponent"] = "";
 
@@ -194,18 +251,32 @@ function createRequest(id1, id2) {
 
     let matches = readData("data.json");
     matches = JSON.parse(matches);
-    if (id2 in matches && matches[id2]["opponent"] == "") {
-        bot.telegram.sendMessage(id1, "Your invitation was sent");
-        bot.telegram.sendMessage(id2, " You was invited to compete with " + id1 + ". Send /yes to accept, or /no to decline.");
-        data[id2] = id1 + "";
-        writeData(data, "requests.json");
+
+    let rating = readData("ratings.json");
+    rating = JSON.parse(rating);
+
+    if (checkRating(id1) && checkRating(id2)) {
+        if (id2 in matches && matches[id2]["opponent"] == "") {
+            bot.telegram.sendMessage(id1, "Your invitation was sent");
+            bot.telegram.sendMessage(id2, " You was invited to compete with " + id1 + ". Send /yes to accept, or /no to decline.");
+            data[id2] = id1 + "";
+            writeData(data, "requests.json");
+        }
+        else {
+            bot.telegram.sendMessage(id1, "Looks like your opponent didnt used this bot or playing another match.");
+        }
     }
     else {
-        bot.telegram.sendMessage(id1, "Looks like your opponent didnt used this bot or playing another match.");
+        bot.telegram.sendMessage(id1, "Looks like your opponent or you havent enough rating to compete, check rating with /rate");
     }
-
-
 }
+
+bot.command('rate', function (user) {
+    let rating = readData("ratings.json");
+    rating = JSON.parse(rating);
+    let rate = rating[user.chat.id];
+    user.reply('Your current rating is ' + rate);
+});
 
 bot.command('guess', function (user) {
     user.reply('Random number from 1234 to 9876 was generated, start guessing!')
