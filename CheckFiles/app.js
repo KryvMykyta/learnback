@@ -8,14 +8,14 @@ function union(setA, setB) {
     return _union;
 }
 
-async function uniqueWords(fileName, set) {
-    let words = await fs.readFileSync(fileName, { encoding: 'utf-8' }).split("\n");
+function uniqueWords(fileName, set) {
+    let words = fs.readFileSync(fileName, { encoding: 'utf-8' }).split("\n");
     let unique = new Set(words);
     return union(set, unique);
 }
 
-async function amountOfWords(fileName, map) {
-    let words = await fs.readFileSync(fileName, { encoding: 'utf-8' }).split("\n");
+function amountOfWords(fileName, map) {
+    let words = fs.readFileSync(fileName, { encoding: 'utf-8' }).split("\n");
     let unique = new Set(words);
     for (let item of unique) {
         if (map.get(item) != undefined) {
@@ -48,15 +48,15 @@ function appearsIn10plusFiles(map) {
     return count;
 }
 
-async function result(num) {
+function result(num) {
     console.log("num = ",num);
     let start = new Date().getTime();
     let set = new Set();
     let map = new Map();
     let item = 0;
     for (let i = 0; i < 20; i++) {
-        set = await uniqueWords("./files"+num+"/out" + i + ".txt", set);
-        map = await amountOfWords("./files"+num+"/out" + i + ".txt", map);
+        set = uniqueWords("./files"+num+"/out" + i + ".txt", set);
+        map = amountOfWords("./files"+num+"/out" + i + ".txt", map);
     }
 
     console.log("unique words : " + set.size);
@@ -65,13 +65,13 @@ async function result(num) {
     let time1 = unq - start;
     console.log("start-unique :" + time1 / 1000 +"\n");
 
-    let inTwenty = await appearsIn20Files(map);
+    let inTwenty =  appearsIn20Files(map);
     let twenty = new Date().getTime();
     let time2 = twenty - unq;
     console.log("in twenty files : " + inTwenty);
     console.log("twenty - unique : " + time2 / 1000 +"\n");
 
-    let inMoreTen = await appearsIn10plusFiles(map);
+    let inMoreTen = appearsIn10plusFiles(map);
     let ten = new Date().getTime();
     let time3 = ten - twenty;
     console.log("more ten : " + inMoreTen);
@@ -82,9 +82,9 @@ async function result(num) {
     console.log("total time : " + total/1000);
 }
 
-async function main() {
-    await result("");
-    await result("1");
+function main() {
+    result("");
+    result("1");
 }
 
 main();
