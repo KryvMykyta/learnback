@@ -3,7 +3,7 @@ import axios from "axios";
 import { getCoords } from "./getCoords.js";
 import fs, { read, writeFile } from 'fs';
 
-const token = '5698955715:AAFOYZkROkkGGUrD5CeMxoXcBxfwOMhvTuI';
+const token = '';
 const bot = new Telegraf(token);
 
 function readData(fileName) {
